@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Ruleta</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #0f172a;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .page {
+    min-height: 100vh;
+    max-width: 420px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    padding: 16px 20px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .logo { font-size: 18px; font-weight: 600; }
+  .menu-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+  .menu-line {
+    width: 18px;
+    height: 2px;
+    background: #0f172a;
+    border-radius: 1px;
+  }
+  .wheel-wrap {
+    position: relative;
+    width: min(88vw, 360px);
+    aspect-ratio: 1 / 1;
+    margin: 40px auto 0;
+  }
+  .pointer {
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-top: 20px solid #0f172a;
+    z-index: 10;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+  }
+  .wheel {
+    width: 100%;
+    height: 100%;
+    transition: transform 4.2s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+    filter: drop-shadow(0 8px 16px rgba(15, 23, 42, 0.15));
+  }
+  .result-block {
+    margin-top: 28px;
+    text-align: center;
+    min-height: 90px;
+    padding: 0 20px;
+  }
+  .result-number {
+    font-size: 56px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1;
+  }
+  .result-number.placeholder { color: #cbd5e1; }
+  .result-label {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 6px;
+  }
+  .actions { padding: 20px 20px 32px; }
+  .btn-primary {
+    width: 100%;
+    padding: 16px;
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    font-family: inherit;
+  }
+  .btn-primary:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="logo">Ruleta</div>
+      <button class="menu-btn" aria-label="Menú">
+        <span class="menu-line"></span>
+        <span class="menu-line"></span>
+        <span class="menu-line"></span>
+      </button>
+    </header>
+
+    <div class="wheel-wrap">
+      <div class="pointer"></div>
+      <svg id="wheel" class="wheel" viewBox="-250 -250 500 500" xmlns="http://www.w3.org/2000/svg">
+        <circle r="232" fill="#ffffff" stroke="#0f172a" stroke-width="2"></circle>
+        <g id="slices"></g>
+        <circle r="24" fill="#0f172a"></circle>
+        <circle r="8" fill="#ffffff"></circle>
+      </svg>
+    </div>
+
+    <div class="result-block">
+      <div id="result-number" class="result-number placeholder">—</div>
+      <div id="result-label" class="result-label">Toca "Girar" para comenzar</div>
+    </div>
+
+    <div class="actions">
+      <button id="spin-btn" class="btn-primary">Girar</button>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const N = 50;
+  const SLICE = 360 / N;
+  const slicesG = document.getElementById('slices');
+  const wheel = document.getElementById('wheel');
+  const spinBtn = document.getElementById('spin-btn');
+  const resultNumber = document.getElementById('result-number');
+  const resultLabel = document.getElementById('result-label');
+  const svgNS = 'http://www.w3.org/2000/svg';
+
+  // Build slices
+  for (let i = 0; i < N; i++) {
+    const center = i * SLICE - 90;
+    const startA = center - SLICE / 2;
+    const endA = center + SLICE / 2;
+    const sR = startA * Math.PI / 180;
+    const eR = endA * Math.PI / 180;
+    const r = 220;
+    const x1 = Math.cos(sR) * r;
+    const y1 = Math.sin(sR) * r;
+    const x2 = Math.cos(eR) * r;
+    const y2 = Math.sin(eR) * r;
+    const d = 'M 0 0 L ' + x1.toFixed(2) + ' ' + y1.toFixed(2) + ' A ' + r + ' ' + r + ' 0 0 1 ' + x2.toFixed(2) + ' ' + y2.toFixed(2) + ' Z';
+
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('fill', i % 2 === 0 ? '#3b82f6' : '#1e40af');
+    path.setAttribute('stroke', 'rgba(255,255,255,0.3)');
+    path.setAttribute('stroke-width', '0.5');
+    slicesG.appendChild(path);
+
+    const labelR = 185;
+    const tx = Math.cos(center * Math.PI / 180) * labelR;
+    const ty = Math.sin(center * Math.PI / 180) * labelR;
+    const labelAngle = center + 90;
+    const text = document.createElementNS(svgNS, 'text');
+    text.setAttribute('x', tx.toFixed(2));
+    text.setAttribute('y', ty.toFixed(2));
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.setAttribute('fill', '#ffffff');
+    text.setAttribute('font-size', '14');
+    text.setAttribute('font-weight', '600');
+    text.setAttribute('transform', 'rotate(' + labelAngle.toFixed(2) + ' ' + tx.toFixed(2) + ' ' + ty.toFixed(2) + ')');
+    text.textContent = (i + 1);
+    slicesG.appendChild(text);
+  }
+
+  let rotation = 0;
+  let spinCount = 0;
+  let spinning = false;
+
+  spinBtn.addEventListener('click', function () {
+    if (spinning) return;
+    spinning = true;
+    spinBtn.disabled = true;
+    spinCount++;
+
+    const rigged = spinCount % 3 === 0;
+    const target = rigged ? 26 : Math.floor(Math.random() * 50) + 1;
+
+    const targetSliceCenter = (target - 1) * SLICE;
+    const jitter = (Math.random() - 0.5) * (SLICE * 0.65);
+    const targetBase = -targetSliceCenter + jitter;
+    const currentMod = ((rotation % 360) + 360) % 360;
+    const targetMod = ((targetBase % 360) + 360) % 360;
+    let delta = targetMod - currentMod;
+    if (delta < 0) delta += 360;
+    const extraSpins = 5 + Math.floor(Math.random() * 3);
+    rotation = rotation + delta + extraSpins * 360;
+    wheel.style.transform = 'rotate(' + rotation + 'deg)';
+
+    resultNumber.textContent = '—';
+    resultNumber.classList.add('placeholder');
+    resultLabel.textContent = 'Girando...';
+
+    setTimeout(function () {
+      resultNumber.textContent = target;
+      resultNumber.classList.remove('placeholder');
+      resultLabel.textContent = '';
+      spinning = false;
+      spinBtn.disabled = false;
+    }, 4300);
+  });
+})();
+</script>
+</body>
+</html>
